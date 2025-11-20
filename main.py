@@ -16,6 +16,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/")
+async def root():
+    return {"message": "API running", "version": app.version}
+
 @app.get("/test")
 async def test_connection():
     # simple ping to verify database connectivity
@@ -36,7 +40,8 @@ async def create_product(product: Product):
 async def list_products(category: Optional[str] = None, featured: Optional[bool] = None, limit: int = 50):
     filter_dict = {}
     if category:
-        filter_dict["category"] = category
+        # normalize category to lowercase for consistent matching
+        filter_dict["category"] = category.lower()
     if featured is not None:
         filter_dict["featured"] = featured
     items = await get_documents("product", filter_dict, limit)
@@ -55,7 +60,7 @@ async def seed_products():
             description="Immersive sound, active noise cancellation, 40h battery, and a lightweight fit.",
             price=149.0,
             image="https://images.unsplash.com/photo-1518444132496-8893f3a2f8db?q=80&w=1200&auto=format&fit=crop",
-            category="Audio",
+            category="audio",
             in_stock=25,
             featured=True,
         ),
@@ -64,7 +69,7 @@ async def seed_products():
             description="AMOLED display, 7-day battery life, fitness + sleep tracking, Bluetooth calls.",
             price=199.0,
             image="https://images.unsplash.com/photo-1511732351157-1865efcb7b7b?q=80&w=1200&auto=format&fit=crop",
-            category="Wearables",
+            category="wearables",
             in_stock=30,
             featured=True,
         ),
@@ -73,7 +78,7 @@ async def seed_products():
             description="Hot-swappable switches, per-key RGB, wireless + USB-C, compact 75% layout.",
             price=129.0,
             image="https://images.unsplash.com/photo-1515879218367-8466d910aaa4?q=80&w=1200&auto=format&fit=crop",
-            category="Accessories",
+            category="keyboard",
             in_stock=40,
             featured=False,
         ),
@@ -82,7 +87,7 @@ async def seed_products():
             description="Ultra-thin bezels, HDR10, 144Hz, color-accurate IPS panel for creators & gamers.",
             price=399.0,
             image="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?q=80&w=1200&auto=format&fit=crop",
-            category="Displays",
+            category="displays",
             in_stock=12,
             featured=False,
         ),
@@ -91,7 +96,7 @@ async def seed_products():
             description="Splash-proof, deep bass, 12h playtime, stereo pairing with multi-room support.",
             price=89.0,
             image="https://images.unsplash.com/photo-1546435770-a3e426bf472b?q=80&w=1200&auto=format&fit=crop",
-            category="Audio",
+            category="audio",
             in_stock=50,
             featured=False,
         ),
@@ -100,7 +105,7 @@ async def seed_products():
             description="Ergonomic aluminum stand with adjustable height and cable management.",
             price=49.0,
             image="https://images.unsplash.com/photo-1516387938699-a93567ec168e?q=80&w=1200&auto=format&fit=crop",
-            category="Accessories",
+            category="accessories",
             in_stock=60,
             featured=False,
         ),
@@ -108,8 +113,12 @@ async def seed_products():
 
     created = 0
     for prod in samples:
-        await create_document("product", prod.dict())
-        created += 1
+      # ensure category is stored lowercase
+      doc = prod.dict()
+      if isinstance(doc.get("category"), str):
+          doc["category"] = doc["category"].lower()
+      await create_document("product", doc)
+      created += 1
 
     return {"status": "created", "count": created}
 
